@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Bet Tracker" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Bet Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg2: #f5f5f3;
+      --bg3: #eeede9;
+      --text: #1a1a18;
+      --text2: #6b6b67;
+      --border: rgba(0,0,0,0.12);
+      --border2: rgba(0,0,0,0.2);
+      --green: #0F6E56;
+      --green-bg: #E1F5EE;
+      --red: #993C1D;
+      --red-bg: #FAECE7;
+      --blue: #185FA5;
+      --blue-bg: #E6F1FB;
+      --gray-bg: #F1EFE8;
+      --gray: #5F5E5A;
+      --radius: 10px;
+      --radius-sm: 7px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg2: #252523;
+        --bg3: #2e2e2b;
+        --text: #f0efea;
+        --text2: #9a9a94;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.18);
+        --green: #5DCAA5;
+        --green-bg: #085041;
+        --red: #F0997B;
+        --red-bg: #4A1B0C;
+        --blue: #85B7EB;
+        --blue-bg: #042C53;
+        --gray-bg: #2C2C2A;
+        --gray: #B4B2A9;
+      }
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
+
+    .app { max-width: 700px; margin: 0 auto; padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px); padding-top: max(env(safe-area-inset-top), 16px); min-height: 100vh; }
+
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-top: 4px; }
+    .header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+    .save-status { font-size: 12px; color: var(--text2); transition: opacity 0.3s; }
+
+    /* Summary cards */
+    .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; }
+    .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+    .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+    .stat-value.pos { color: var(--green); }
+    .stat-value.neg { color: var(--red); }
+
+    /* Add form */
+    .form-card { background: var(--bg2); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; }
+    .form-card h2 { font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+    .field input, .field select {
+      width: 100%; height: 44px; padding: 0 12px;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--border2); border-radius: var(--radius-sm);
+      font-size: 15px; font-family: inherit;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--blue); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .add-btn {
+      width: 100%; height: 48px; margin-top: 4px;
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 600; font-family: inherit;
+      cursor: pointer; letter-spacing: -0.2px;
+      transition: opacity 0.15s;
+    }
+    .add-btn:active { opacity: 0.8; }
+
+    /* Filter */
+    .filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0; height: 30px; padding: 0 14px;
+      background: var(--bg2); color: var(--text2);
+      border: 1px solid var(--border); border-radius: 999px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+    /* Bet list */
+    .bet-list { display: flex; flex-direction: column; gap: 10px; }
+    .bet-card { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; position: relative; }
+    .bet-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+    .bet-desc { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; padding-right: 10px; }
+    .bet-date { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; flex-shrink: 0; }
+    .badge.win { background: var(--green-bg); color: var(--green); }
+    .badge.loss { background: var(--red-bg); color: var(--red); }
+    .badge.push { background: var(--gray-bg); color: var(--gray); }
+    .badge.pending { background: var(--blue-bg); color: var(--blue); }
+    .bet-meta { display: flex; gap: 16px; align-items: center; }
+    .meta-item { font-size: 13px; color: var(--text2); }
+    .meta-item span { color: var(--text); font-weight: 500; }
+    .bet-pl { font-size: 16px; font-weight: 700; margin-left: auto; }
+    .bet-pl.pos { color: var(--green); }
+    .bet-pl.neg { color: var(--red); }
+    .bet-pl.zero { color: var(--text2); }
+    .del-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 16px; color: var(--text2); cursor: pointer; padding: 4px 6px; border-radius: 6px; line-height: 1; display: none; }
+    .bet-card:hover .del-btn, .bet-card.show-del .del-btn { display: block; }
+    .del-btn:active { background: var(--red-bg); color: var(--red); }
+
+    .empty { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 15px; }
+    .loading { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 15px; }
+
+    /* Sportsbook badge */
+    .book-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bg3); color: var(--text2); margin-top: 4px; }
+
+    /* Long press delete on mobile */
+    .bet-card { -webkit-user-select: none; user-select: none; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Bet Tracker</h1>
+    <span class="save-status" id="save-status"></span>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="stat-label">Total bets</div><div class="stat-value" id="s-total">0</div></div>
+    <div class="stat"><div class="stat-label">Win rate</div><div class="stat-value" id="s-winrate">—</div></div>
+    <div class="stat"><div class="stat-label">Wagered</div><div class="stat-value" id="s-wagered">$0</div></div>
+    <div class="stat"><div class="stat-label">Net P/L</div><div class="stat-value" id="s-pl">$0</div></div>
+  </div>
+
+  <div class="form-card">
+    <h2>Add a bet</h2>
+    <div class="field">
+      <label>Description</label>
+      <input type="text" id="f-desc" placeholder="e.g. Chiefs -3, Lakers ML" autocomplete="off" />
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Wager ($)</label><input type="number" id="f-wager" placeholder="50" min="0" step="0.01" inputmode="decimal" /></div>
+      <div class="field"><label>Odds (American)</label><input type="text" id="f-odds" placeholder="-110" inputmode="text" autocomplete="off" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Date</label><input type="date" id="f-date" /></div>
+      <div class="field"><label>Result</label>
+        <select id="f-result">
+          <option value="pending">Pending</option>
+          <option value="win">Win</option>
+          <option value="loss">Loss</option>
+          <option value="push">Push</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Sportsbook</label>
+      <select id="f-book">
+        <option value="">— None —</option>
+        <option value="DraftKings">DraftKings</option>
+        <option value="FanDuel">FanDuel</option>
+        <option value="BetMGM">BetMGM</option>
+        <option value="Caesars">Caesars</option>
+        <option value="ESPN Bet">ESPN Bet</option>
+        <option value="PointsBet">PointsBet</option>
+        <option value="BetRivers">BetRivers</option>
+        <option value="Hard Rock Bet">Hard Rock Bet</option>
+        <option value="Fanatics">Fanatics</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <button class="add-btn" onclick="addBet()">+ Add Bet</button>
+  </div>
+
+  <div class="filter-row" id="filter-row">
+    <button class="chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="chip" data-filter="pending" onclick="setFilter('pending', this)">Pending</button>
+    <button class="chip" data-filter="win" onclick="setFilter('win', this)">Wins</button>
+    <button class="chip" data-filter="loss" onclick="setFilter('loss', this)">Losses</button>
+    <button class="chip" data-filter="push" onclick="setFilter('push', this)">Pushes</button>
+  </div>
+
+  <div class="filter-row" id="book-filter-row" style="display:none">
+    <button class="chip active" data-book="all" onclick="setBookFilter('all', this)">All books</button>
+  </div>
+
+  <div id="loading-state" class="loading">Loading your bets...</div>
+  <div id="empty-state" class="empty" style="display:none">No bets here yet.</div>
+  <div class="bet-list" id="bet-list"></div>
+</div>
+
+<script>
+let bets = [];
+let currentFilter = 'all';
+let currentBook = 'all';
+
+function setToday() {
+  const d = document.getElementById('f-date');
+  if (!d.value) d.value = new Date().toISOString().split('T')[0];
+}
+setToday();
+
+function setStatus(msg) {
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+function loadBets() {
+  try {
+    const raw = localStorage.getItem('bet-tracker-bets');
+    bets = raw ? JSON.parse(raw) : [];
+  } catch(e) { bets = []; }
+  document.getElementById('loading-state').style.display = 'none';
+  render();
+}
+
+function saveBets() {
+  try {
+    localStorage.setItem('bet-tracker-bets', JSON.stringify(bets));
+    setStatus('Saved ✓');
+  } catch(e) { setStatus('Save failed'); }
+}
+
+function calcToWin(wager, odds) {
+  const o = parseFloat(odds);
+  if (isNaN(o) || wager <= 0) return 0;
+  if (o > 0) return wager * (o / 100);
+  if (o < 0) return wager * (100 / Math.abs(o));
+  return 0;
+}
+
+function calcPL(wager, odds, result) {
+  if (result === 'pending') return null;
+  if (result === 'push') return 0;
+  if (result === 'loss') return -Math.abs(wager);
+  if (result === 'win') return calcToWin(wager, odds);
+  return null;
+}
+
+function fmtPL(n) {
+  if (n === null) return null;
+  if (n > 0) return { text: '+$' + n.toFixed(2), cls: 'pos' };
+  if (n < 0) return { text: '-$' + Math.abs(n).toFixed(2), cls: 'neg' };
+  return { text: '$0.00', cls: 'zero' };
+}
+
+function addBet() {
+  const desc = document.getElementById('f-desc').value.trim();
+  const wager = parseFloat(document.getElementById('f-wager').value);
+  const odds = document.getElementById('f-odds').value.trim();
+  const date = document.getElementById('f-date').value;
+  const result = document.getElementById('f-result').value;
+  const book = document.getElementById('f-book').value;
+
+  if (!desc || isNaN(wager) || wager <= 0 || !odds) {
+    alert('Please fill in description, wager, and odds.');
+    return;
+  }
+
+  bets.unshift({ id: Date.now(), desc, wager, odds, date, result, book });
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-wager').value = '';
+  document.getElementById('f-odds').value = '';
+  document.getElementById('f-result').value = 'pending';
+  document.getElementById('f-book').value = '';
+  setToday();
+  saveBets();
+  render();
+}
+
+function deleteBet(id) {
+  if (!confirm('Delete this bet?')) return;
+  bets = bets.filter(b => b.id !== id);
+  saveBets();
+  render();
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('#filter-row .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setBookFilter(b, el) {
+  currentBook = b;
+  document.querySelectorAll('#book-filter-row .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function updateBookFilterRow() {
+  const books = [...new Set(bets.map(b => b.book).filter(Boolean))].sort();
+  const row = document.getElementById('book-filter-row');
+  if (books.length === 0) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  // Keep "All books" chip, rebuild the rest
+  const allChip = row.querySelector('[data-book="all"]');
+  row.innerHTML = '';
+  row.appendChild(allChip);
+  books.forEach(bk => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (currentBook === bk ? ' active' : '');
+    chip.dataset.book = bk;
+    chip.textContent = bk;
+    chip.onclick = () => setBookFilter(bk, chip);
+    row.appendChild(chip);
+  });
+  // make sure "all books" active state is correct
+  allChip.className = 'chip' + (currentBook === 'all' ? ' active' : '');
+}
+
+// Long press to show delete on mobile
+let pressTimer = null;
+function startPress(id) {
+  pressTimer = setTimeout(() => {
+    document.querySelectorAll('.bet-card').forEach(c => c.classList.remove('show-del'));
+    const card = document.getElementById('card-' + id);
+    if (card) card.classList.add('show-del');
+  }, 500);
+}
+function endPress() { clearTimeout(pressTimer); }
+
+function render() {
+  updateBookFilterRow();
+
+  let filtered = bets;
+  if (currentFilter !== 'all') filtered = filtered.filter(b => b.result === currentFilter);
+  if (currentBook !== 'all') filtered = filtered.filter(b => b.book === currentBook);
+
+  const list = document.getElementById('bet-list');
+  const empty = document.getElementById('empty-state');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    list.innerHTML = filtered.map(b => {
+      const toWin = calcToWin(b.wager, b.odds);
+      const pl = calcPL(b.wager, b.odds, b.result);
+      const plFmt = fmtPL(pl);
+      const labels = { win: 'Win', loss: 'Loss', push: 'Push', pending: 'Pending' };
+      return `<div class="bet-card" id="card-${b.id}"
+        ontouchstart="startPress(${b.id})" ontouchend="endPress()" ontouchcancel="endPress()">
+        <button class="del-btn" onclick="deleteBet(${b.id})">✕</button>
+        <div class="bet-top">
+          <div>
+            <div class="bet-desc">${b.desc}</div>
+            <div class="bet-date">${b.date || ''}${b.book ? ` · <span style="color:var(--text)">${b.book}</span>` : ''}</div>
+          </div>
+          <span class="badge ${b.result}">${labels[b.result]}</span>
+        </div>
+        <div class="bet-meta">
+          <div class="meta-item">Wager: <span>$${parseFloat(b.wager).toFixed(2)}</span></div>
+          <div class="meta-item">Odds: <span>${b.odds}</span></div>
+          <div class="meta-item">To win: <span>$${toWin.toFixed(2)}</span></div>
+          ${plFmt ? `<div class="bet-pl ${plFmt.cls}">${plFmt.text}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Stats from currently filtered bets
+  const settled = filtered.filter(b => b.result === 'win' || b.result === 'loss');
+  const wins = filtered.filter(b => b.result === 'win').length;
+  const winRate = settled.length > 0 ? Math.round((wins / settled.length) * 100) + '%' : '—';
+  const wagered = filtered.reduce((s, b) => s + parseFloat(b.wager || 0), 0);
+  const netPL = filtered.reduce((s, b) => {
+    const pl = calcPL(b.wager, b.odds, b.result);
+    return s + (pl !== null ? pl : 0);
+  }, 0);
+
+  document.getElementById('s-total').textContent = filtered.length;
+  document.getElementById('s-winrate').textContent = winRate;
+  document.getElementById('s-wagered').textContent = '$' + wagered.toFixed(2);
+  const plEl = document.getElementById('s-pl');
+  plEl.textContent = (netPL >= 0 ? '+$' : '-$') + Math.abs(netPL).toFixed(2);
+  plEl.className = 'stat-value' + (netPL > 0 ? ' pos' : netPL < 0 ? ' neg' : '');
+}
+
+// Close delete button on tap elsewhere
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.bet-card') && !e.target.closest('.del-btn')) {
+    document.querySelectorAll('.bet-card').forEach(c => c.classList.remove('show-del'));
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+loadBets();
+</script>
+</body>
+</html>
